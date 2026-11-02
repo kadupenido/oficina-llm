@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ -n "${API_KEY:-}" ]; then
+  export API_AUTHORIZATION="Bearer ${API_KEY}"
+else
+  export API_AUTHORIZATION=""
+fi
