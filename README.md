@@ -11,6 +11,8 @@ O que este repositório explora na prática:
 
 O modelo padrão é o [Qwen3.5-4B Q4_K_M](https://huggingface.co/unsloth/Qwen3.5-4B-GGUF), baixado na primeira subida. Foi escolhido por caber em placas modestas (a partir de ~6 GB de VRAM) e ainda responder bem em português.
 
+![Interface do chat](docs/chat.png)
+
 ## Arquitetura
 
 O navegador fala só com o backend FastAPI. O backend guarda as conversas, corta o histórico para caber no contexto e faz proxy para um `llama-server` local, com API compatível com a OpenAI.
