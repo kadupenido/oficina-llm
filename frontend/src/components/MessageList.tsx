@@ -1,8 +1,6 @@
 import { memo } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import type { Message } from "../types";
-import { CodeBlock } from "./CodeBlock";
+import { AssistantMarkdown } from "./AssistantMarkdown";
 
 interface MessageListProps {
   messages: Message[];
@@ -54,19 +52,7 @@ const MessageBubble = memo(function MessageBubble({
               <p className="text-ink-500">Gerando…</p>
             ) : (
               <div className="markdown">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
-                    a: ({ href, children }) => (
-                      <a href={href} target="_blank" rel="noreferrer">
-                        {children}
-                      </a>
-                    ),
-                  }}
-                >
-                  {message.content || " "}
-                </ReactMarkdown>
+                <AssistantMarkdown content={message.content} />
               </div>
             )}
             {streaming && webSearchSources && webSearchSources.length > 0 && (

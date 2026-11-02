@@ -1,5 +1,6 @@
 services:
   llama:
+    container_name: oficina-llm-llama
     image: ghcr.io/ggml-org/llama.cpp:server-cuda-b12019
     networks: [chat]
     # Somente GPU NVIDIA (RTX 4050 6 GB). Sem GPU o container não sobe.
@@ -70,6 +71,7 @@ services:
     restart: unless-stopped
 
   backend:
+    container_name: oficina-llm-backend
     build:
       context: ./backend
     networks: [chat]
@@ -121,6 +123,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    container_name: oficina-llm-frontend
     build:
       context: ./frontend
       args:

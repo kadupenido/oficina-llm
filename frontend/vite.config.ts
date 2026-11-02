@@ -20,6 +20,10 @@ export default defineConfig(({ mode }) => {
   }
   return {
     plugins: [react()],
+    test: {
+      environment: "jsdom",
+      setupFiles: "./src/test/setup.ts",
+    },
     server: {
       port: 5173,
       proxy: {

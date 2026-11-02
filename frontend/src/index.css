@@ -68,11 +68,19 @@ body {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.markdown-table-wrap {
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
 .markdown table {
   width: 100%;
   border-collapse: collapse;
-  margin: 0.75rem 0;
   font-size: 0.92rem;
+}
+
+.markdown-table-wrap table {
+  margin: 0;
 }
 
 .markdown th,

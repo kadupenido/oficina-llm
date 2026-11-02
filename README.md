@@ -1,10 +1,25 @@
-# Chat local com Qwen3.5-4B
+# Oficina LLM
 
-O navegador fala só com um backend FastAPI. O backend guarda as conversas, corta o histórico para caber no contexto e faz proxy para um `llama-server` local, com a API compatível com a OpenAI. O modelo é o [Qwen3.5-4B Q4_K_M](https://huggingface.co/unsloth/Qwen3.5-4B-GGUF), baixado na primeira subida.
+Chat local na GPU para **estudo** — aprender a rodar um modelo de linguagem **localmente na placa**, sem depender de API na nuvem. O foco é entender o caminho completo — da VRAM e do `llama.cpp` até uma interface de chat usável — e não entregar um produto pronto para produção.
+
+O que este repositório explora na prática:
+
+- **Inferência na GPU NVIDIA** com [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama-server`), incluindo quantização GGUF, cache KV e limites reais de VRAM (sem fallback silencioso para CPU).
+- **Orquestração** com Docker Compose: modelo, backend e frontend na mesma pilha.
+- **Camada de aplicação** em FastAPI (histórico, contexto, streaming SSE) e React, como um “mini ChatGPT” apontando para `http://127.0.0.1`.
+- **Extras opcionais** para experimentar agente com busca na web (Tavily) e anexo de arquivos — úteis para ver function calling e prompt com contexto extra.
+
+O modelo padrão é o [Qwen3.5-4B Q4_K_M](https://huggingface.co/unsloth/Qwen3.5-4B-GGUF), baixado na primeira subida. Foi escolhido por caber em placas modestas (a partir de ~6 GB de VRAM) e ainda responder bem em português.
+
+## Arquitetura
+
+O navegador fala só com o backend FastAPI. O backend guarda as conversas, corta o histórico para caber no contexto e faz proxy para um `llama-server` local, com API compatível com a OpenAI.
 
 ```
-Frontend (React) -> Backend (FastAPI, /docs) -> llama-server (Qwen3.5-4B Q4_K_M)
+Frontend (React) -> Backend (FastAPI, /docs) -> llama-server (Qwen3.5-4B Q4_K_M, GPU)
 ```
+
+Contratos e invariantes do código estão no [AGENTS.md](AGENTS.md). VRAM, driver CUDA e variáveis de ambiente continuam detalhados abaixo.
 
 ## Requisitos
 
@@ -62,8 +77,6 @@ A imagem CUDA exige driver do host com CUDA >= 12.8. Com um driver mais antigo (
 
 
 ## Desenvolvimento local
-
-O contrato que uma alteração precisa preservar está no [AGENTS.md](AGENTS.md).
 
 Com o llama-server já no ar:
 

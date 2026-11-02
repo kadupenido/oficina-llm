@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
     app = FastAPI(
-        title="Chat local",
+        title="Oficina LLM",
         version="1.0.0",
         summary="API de conversas com um modelo servido pelo llama-server.",
         description=(

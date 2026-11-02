@@ -79,7 +79,7 @@ export function Sidebar({
       >
         <div className="flex items-center justify-between gap-3 px-4 py-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-ink-500 dark:text-paper-200">Local</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-ink-500 dark:text-paper-200">Oficina LLM</p>
             <h1 className="text-lg font-semibold">Conversas</h1>
           </div>
           <button
