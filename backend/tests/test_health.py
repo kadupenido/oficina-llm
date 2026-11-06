@@ -7,7 +7,7 @@ async def test_health_ok(tmp_path):
         assert response.status_code == 200
         body = response.json()
         assert body["status"] == "ok"
-        assert body["llama_server"]["reachable"] is True
+        assert body["upstream"]["reachable"] is True
 
 
 async def test_health_degraded(tmp_path):

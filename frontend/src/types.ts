@@ -31,7 +31,7 @@ export interface ConversationDetail extends Conversation {
 
 export interface HealthResponse {
   status: "ok" | "degraded";
-  llama_server: {
+  upstream: {
     reachable: boolean;
     status: string;
   };

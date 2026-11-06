@@ -1,83 +1,12 @@
 services:
-  llama:
-    container_name: oficina-llm-llama
-    image: ghcr.io/ggml-org/llama.cpp:server-cuda-b12019
-    networks: [chat]
-    # Somente GPU NVIDIA (RTX 4050 6 GB). Sem GPU o container não sobe.
-    gpus: all
-    environment:
-      # A imagem pede CUDA >= 12.8 no driver do host, mas o driver desta
-      # máquina (566.x) expõe 12.7. Binários CUDA 12.x rodam por
-      # compatibilidade de minor version, então a checagem do
-      # nvidia-container-cli é dispensada. A imagem também traz uma libcuda
-      # "compat" 570 que o loader escolhe antes da libcuda real do driver e
-      # quebra o cuInit ("no CUDA-capable device"); o LD_LIBRARY_PATH abaixo
-      # põe a libcuda do host na frente. Com driver 570+ nada disso é preciso.
-      NVIDIA_DISABLE_REQUIRE: "true"
-      LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu:/app
-      NVIDIA_VISIBLE_DEVICES: all
-      NVIDIA_DRIVER_CAPABILITIES: compute,utility
-      LLAMA_CACHE: /cache
-      HF_HOME: /cache/huggingface
-      HUGGINGFACE_HUB_CACHE: /cache/huggingface/hub
-      LLAMA_HF_REPO: ${LLAMA_HF_REPO:-unsloth/Qwen3.5-4B-GGUF:Q4_K_M}
-      LLAMA_CTX_SIZE: ${LLAMA_CTX_SIZE:-8192}
-      LLAMA_THREADS: ${LLAMA_THREADS:-4}
-      LLAMA_PARALLEL: ${LLAMA_PARALLEL:-1}
-      LLAMA_KV_CACHE_TYPE: ${LLAMA_KV_CACHE_TYPE:-q8_0}
-      LLAMA_BATCH_SIZE: ${LLAMA_BATCH_SIZE:-1024}
-      LLAMA_UBATCH_SIZE: ${LLAMA_UBATCH_SIZE:-512}
-      LLAMA_ENABLE_THINKING: ${LLAMA_ENABLE_THINKING:-false}
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        if [ "$$LLAMA_ENABLE_THINKING" = "true" ]; then
-          REASONING=on
-        else
-          REASONING=off
-        fi
-        exec /app/llama-server \
-          --host 0.0.0.0 \
-          --port 8080 \
-          -hf "$$LLAMA_HF_REPO" \
-          --jinja \
-          --reasoning "$$REASONING" \
-          -c "$$LLAMA_CTX_SIZE" \
-          --temp 1.0 \
-          --top-p 0.95 \
-          --top-k 20 \
-          --min-p 0.0 \
-          -dev CUDA0 \
-          -ngl all \
-          -fit off \
-          -fa on \
-          -ctk "$$LLAMA_KV_CACHE_TYPE" \
-          -ctv "$$LLAMA_KV_CACHE_TYPE" \
-          -b "$$LLAMA_BATCH_SIZE" \
-          -ub "$$LLAMA_UBATCH_SIZE" \
-          --no-mmproj \
-          --threads "$$LLAMA_THREADS" \
-          --parallel "$$LLAMA_PARALLEL"
-    volumes:
-      - llama-cache:/cache
-    ports:
-      - "127.0.0.1:${LLAMA_PORT:-8080}:8080"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 20s
-      timeout: 5s
-      retries: 30
-      start_period: 900s
-    restart: unless-stopped
-
   backend:
     container_name: oficina-llm-backend
     build:
       context: ./backend
     networks: [chat]
     environment:
-      LLAMA_BASE_URL: http://llama:8080/v1
-      LLAMA_API_KEY: ${LLAMA_API_KEY:-local}
+      LLAMA_BASE_URL: ${LLAMA_BASE_URL:-http://host.docker.internal:9080/v1}
+      LLAMA_API_KEY: ${LLAMA_API_KEY}
       LLAMA_MODEL: ${LLAMA_MODEL:-}
       LLAMA_TIMEOUT_SECONDS: ${LLAMA_TIMEOUT_SECONDS:-300}
       LLAMA_ENABLE_THINKING: ${LLAMA_ENABLE_THINKING:-false}
@@ -105,9 +34,8 @@ services:
       - backend-data:/data
     ports:
       - "127.0.0.1:8000:8000"
-    depends_on:
-      llama:
-        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test:
         [
@@ -130,7 +58,7 @@ services:
         VITE_API_BASE_URL: ""
     networks: [chat]
     environment:
-      LLAMA_TIMEOUT_SECONDS: ${LLAMA_TIMEOUT_SECONDS:-300}
+      UPSTREAM_TIMEOUT_SECONDS: ${UPSTREAM_TIMEOUT_SECONDS:-300}
       API_KEY: ${API_KEY:-}
     ports:
       - "127.0.0.1:8088:80"
@@ -150,5 +78,4 @@ networks:
     name: chat
 
 volumes:
-  llama-cache:
   backend-data:

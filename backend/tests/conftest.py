@@ -9,7 +9,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import Settings
 from app.main import create_app
-from app.services.llm import LlamaHealth, ModelChunk, ModelReply, ToolCall
+from app.services.llm import ModelChunk, ModelReply, ToolCall, UpstreamHealth
 
 
 class FakeLLM:
@@ -22,7 +22,7 @@ class FakeLLM:
         self.fail_stream = False
         self.title_fails = False
         self.block = False
-        self.health = LlamaHealth(reachable=True, status="ok")
+        self.health = UpstreamHealth(reachable=True, status="ok")
         self.complete_calls: list[dict] = []
         self.stream_calls: list[list[dict]] = []
         self.started = asyncio.Event()
@@ -37,7 +37,7 @@ class FakeLLM:
     async def aclose(self) -> None:
         return None
 
-    async def check_health(self) -> LlamaHealth:
+    async def check_health(self) -> UpstreamHealth:
         return self.health
 
     async def complete(
@@ -138,6 +138,7 @@ async def make_client(tmp_path: Path, **overrides):
         "database_url": f"sqlite+aiosqlite:///{database}",
         "api_key": "",
         "llama_base_url": "http://127.0.0.1:9/v1",
+        "llama_api_key": "test",
         "llama_parallel": 1,
         "llama_ctx_size": 8192,
         "max_tokens_default": 128,

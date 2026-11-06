@@ -32,7 +32,10 @@ ERROR_RESPONSES = {
     409: {"model": ErrorBody, "description": "Já existe uma geração nesta conversa."},
     413: {"model": ErrorBody, "description": "Mensagem maior que o contexto."},
     422: {"model": ErrorBody, "description": "Corpo inválido."},
-    503: {"model": ErrorBody, "description": "llama-server indisponível ou sem slot livre."},
+    503: {
+        "model": ErrorBody,
+        "description": "Serviço de inferência indisponível ou sem capacidade (slot esgotado).",
+    },
     504: {"model": ErrorBody, "description": "Tempo esgotado ao falar com o modelo."},
 }
 

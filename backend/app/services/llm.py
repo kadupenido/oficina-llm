@@ -41,7 +41,7 @@ def _is_context_overflow(exc: APIStatusError) -> bool:
 
 
 @dataclass
-class LlamaHealth:
+class UpstreamHealth:
     reachable: bool
     status: str
 
@@ -171,7 +171,7 @@ class LLMClient:
         timeout = httpx.Timeout(self._settings.llama_timeout_seconds, connect=10.0)
         return AsyncOpenAI(
             base_url=self._settings.llama_base_url,
-            api_key=self._settings.llama_api_key or "local",
+            api_key=self._settings.llama_api_key,
             timeout=timeout,
         )
 
@@ -179,13 +179,13 @@ class LLMClient:
         await self._client.close()
         await self._http.aclose()
 
-    async def check_health(self) -> LlamaHealth:
+    async def check_health(self) -> UpstreamHealth:
         try:
             response = await self._http.get(self._settings.llama_health_url)
         except httpx.HTTPError:
-            return LlamaHealth(reachable=False, status="unreachable")
+            return UpstreamHealth(reachable=False, status="unreachable")
         if response.status_code >= 400:
-            return LlamaHealth(reachable=False, status=f"http_{response.status_code}")
+            return UpstreamHealth(reachable=False, status=f"http_{response.status_code}")
         status = "ok"
         try:
             payload = response.json()
@@ -193,7 +193,7 @@ class LLMClient:
                 status = str(payload["status"])
         except ValueError:
             status = "ok"
-        return LlamaHealth(reachable=True, status=status)
+        return UpstreamHealth(reachable=True, status=status)
 
     async def resolve_model(self) -> str:
         if self._model:

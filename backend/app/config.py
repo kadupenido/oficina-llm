@@ -26,8 +26,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    llama_base_url: str = "http://127.0.0.1:8080/v1"
-    llama_api_key: str = "local"
+    llama_base_url: str = "http://127.0.0.1:9080/v1"
+    llama_api_key: str = ""
     llama_model: str = ""
     llama_timeout_seconds: float = 300
     llama_enable_thinking: bool = False
@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     file_upload_max_bytes: int = 5_000_000
     file_upload_max_files: int = 5
     file_upload_max_chars: int = 100_000
+
+    @model_validator(mode="after")
+    def validate_llama_api_key(self) -> "Settings":
+        if not self.llama_api_key.strip():
+            raise ValueError(
+                "LLAMA_API_KEY é obrigatória: a API de inferência exige autenticação Bearer."
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_web_search(self) -> "Settings":

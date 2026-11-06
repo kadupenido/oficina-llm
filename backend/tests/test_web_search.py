@@ -94,6 +94,7 @@ async def test_run_web_search_truncates_payload():
     from app.config import Settings
 
     settings = Settings(
+        llama_api_key="test",
         tavily_api_key="k",
         web_search_max_results=2,
         web_search_max_chars=80,

@@ -603,6 +603,7 @@ async def test_uvicorn_abort_saves_interrupted(tmp_path):
         database_url=f"sqlite+aiosqlite:///{database}",
         api_key="",
         llama_base_url="http://127.0.0.1:9/v1",
+        llama_api_key="test",
         llama_parallel=1,
         max_tokens_default=32,
         system_prompt="SYS",

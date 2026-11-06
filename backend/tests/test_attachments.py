@@ -17,7 +17,12 @@ def test_is_allowed_filename_rejects_unknown_extension():
 
 
 def test_extract_text_plain():
-    settings = Settings(_env_file=None, file_upload_max_bytes=1000, file_upload_max_chars=500)
+    settings = Settings(
+        _env_file=None,
+        llama_api_key="test",
+        file_upload_max_bytes=1000,
+        file_upload_max_chars=500,
+    )
     text = extract_text("notas.txt", b"ola mundo", settings)
     assert text == "ola mundo"
 
@@ -35,7 +40,12 @@ def test_compose_user_content_with_attachment():
 
 
 def test_extract_text_rejects_empty_pdf():
-    settings = Settings(_env_file=None, file_upload_max_bytes=100_000, file_upload_max_chars=100_000)
+    settings = Settings(
+        _env_file=None,
+        llama_api_key="test",
+        file_upload_max_bytes=100_000,
+        file_upload_max_chars=100_000,
+    )
     writer = PdfWriter()
     writer.add_blank_page(width=200, height=200)
     buffer = BytesIO()

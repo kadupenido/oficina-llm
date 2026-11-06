@@ -47,10 +47,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Oficina LLM",
         version="1.0.0",
-        summary="API de conversas com um modelo servido pelo llama-server.",
+        summary="API de conversas com inferência externa (OpenAI-compatible).",
         description=(
-            "O navegador fala só com esta API. A inferência fica no llama-server, "
-            "compatível com o formato da OpenAI, apontado por LLAMA_BASE_URL."
+            "O navegador fala só com esta API. A inferência fica num serviço à parte "
+            "(API no formato OpenAI), apontado por LLAMA_BASE_URL."
         ),
         lifespan=lifespan,
     )

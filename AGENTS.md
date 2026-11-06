@@ -1,6 +1,8 @@
 # Agente neste repositório
 
-O navegador só fala com o FastAPI. O FastAPI guarda a conversa, monta o contexto e faz proxy para o `llama-server`. Preserve o contrato abaixo. VRAM, driver CUDA, variáveis e curl ficam no README.
+**Escopo:** este repositório é só o **aplicativo de chat** (React + FastAPI + SQLite). A **inferência** roda à parte no projeto **[Nook](https://github.com/kadupenido/nook)** — API compatível com OpenAI (ex.: `http://127.0.0.1:9080/v1`), com autenticação **Bearer** (`LLAMA_API_KEY`).
+
+O navegador só fala com o FastAPI. O FastAPI guarda a conversa, monta o contexto e faz proxy para esse upstream. Preserve o contrato abaixo. Variáveis e curl ficam no README.
 
 ## Mapa
 
@@ -18,9 +20,9 @@ O system prompt e a mensagem atual sempre entram. O histórico entra do mais nov
 
 Mensagens `interrupted` e `error` ficam no banco e na tela, e ficam fora do prompt. Um `user` sem resposta `complete` depois dele também fica de fora.
 
-Uma mensagem que não cabe no orçamento responde 413 (`MessageTooLong`). O mesmo 413 vale quando o llama-server recusa o prompt por estouro de contexto. Não corte a pergunta em silêncio. Se algum turno antigo ficou de fora, a resposta traz `history_truncated: true`.
+Uma mensagem que não cabe no orçamento responde 413 (`MessageTooLong`). O mesmo 413 vale quando o **upstream** recusa o prompt por estouro de contexto. Não corte a pergunta em silêncio. Se algum turno antigo ficou de fora, a resposta traz `history_truncated: true`.
 
-A ocupação do prompt é a soma de `caracteres / CHARS_PER_TOKEN` mais `MESSAGE_OVERHEAD_TOKENS` por mensagem que entrou (`prompt_token_estimate`). O `meta` traz essa estimativa em `context_tokens` e a janela em `context_limit` (`LLAMA_CTX_SIZE`). O GET da conversa devolve a mesma estimativa sobre o system prompt e os pares `complete`. No `done`, se o llama-server mandou usage, `context_tokens` passa a ser `prompt_tokens + completion_tokens`. A barra lateral mostra esse total, o percentual sobre `context_limit` e a taxa de geração.
+A ocupação do prompt é a soma de `caracteres / CHARS_PER_TOKEN` mais `MESSAGE_OVERHEAD_TOKENS` por mensagem que entrou (`prompt_token_estimate`). O `meta` traz essa estimativa em `context_tokens` e a janela em `context_limit` (`LLAMA_CTX_SIZE`). O GET da conversa devolve a mesma estimativa sobre o system prompt e os pares `complete`. No `done`, se o upstream mandou usage, `context_tokens` passa a ser `prompt_tokens + completion_tokens`. A barra lateral mostra esse total, o percentual sobre `context_limit` e a taxa de geração.
 
 ## Geração
 
@@ -28,11 +30,11 @@ Não há retry automático: repetir a pergunta gravaria outro turno. "Tentar nov
 
 Abortar o POST grava o texto parcial com status `interrupted`.
 
-Blocos `<think>` e `reasoning_content` não entram em `content`, na bolha markdown nem no histórico do prompt (`backend/app/services/think.py`, `backend/app/services/llm.py`). Com `LLAMA_ENABLE_THINKING=true`, o stream expõe o raciocínio em eventos `think` e no campo `thinking` do `done` (só na sessão da UI; não persiste no SQLite). O padrão é `LLAMA_ENABLE_THINKING=false`. Com thinking desligado, o backend manda `chat_template_kwargs.enable_thinking=false` e descarta o bloco se o modelo ainda o emitir.
+Blocos entre os delimitadores tratados por `ThinkStripper` (`backend/app/services/think.py`) e o campo `reasoning_content` não entram em `content`, na bolha markdown nem no histórico do prompt (`backend/app/services/think.py`, `backend/app/services/llm.py`). Com `LLAMA_ENABLE_THINKING=true`, o stream expõe o raciocínio em eventos `think` e no campo `thinking` do `done` (só na sessão da UI; não persiste no SQLite). O padrão é `LLAMA_ENABLE_THINKING=false`. Com thinking desligado, o backend manda `chat_template_kwargs.enable_thinking=false` e descarta o bloco se o modelo ainda o emitir (se o upstream suportar esse extra body).
 
-Uma conversa que já está gerando responde 409. Slot esgotado responde 503. Suba `LLAMA_PARALLEL` e `LLAMA_CTX_SIZE` juntos: `--parallel` divide o contexto total.
+Uma conversa que já está gerando responde 409. Capacidade de geração simultânea neste processo esgotada responde 503. `LLAMA_PARALLEL` limita quantas gerações podem correr ao mesmo tempo **neste backend**; alinhe com a capacidade do upstream.
 
-A amostragem fica nas flags do servidor. O backend só envia `temperature` quando o cliente pede, e sempre envia `max_tokens` (o valor do pedido ou `MAX_TOKENS_DEFAULT`).
+O backend só envia `temperature` quando o cliente pede, e sempre envia `max_tokens` (o valor do pedido ou `MAX_TOKENS_DEFAULT`). Outros parâmetros de amostragem dependem do upstream.
 
 O `done` traz `prompt_tokens`, `completion_tokens` e `tokens_per_second` quando o usage chega. A taxa é `completion_tokens` dividido pelo tempo desde o primeiro token visível até o fim do stream. Sem usage, os três ficam nulos e a tela conserva a contagem dos eventos `token`.
 
@@ -44,13 +46,15 @@ O título provisório é o começo da primeira mensagem, até 48 caracteres (`ba
 
 ## Segredos e dados
 
+`LLAMA_API_KEY` é o Bearer para o upstream; fica só no backend.
+
 `API_KEY`, quando preenchida, é injetada pelo nginx do frontend ou pelo proxy do Vite. Ela não entra no JavaScript.
 
 SQLite aceita um escritor por vez. O app é para uma pessoa. Não abra vários processos da API no mesmo arquivo.
 
 ## Busca na web
 
-Com `WEB_SEARCH_ENABLED=true` e `TAVILY_API_KEY` preenchida, o backend oferece a ferramenta `web_search` ao llama-server (function calling com `--jinja`). O loop agente corre no FastAPI (`agent.py`): cada rodada fala com o modelo em stream; se ele pede a tool, o backend chama a Tavily (`web_search.py`) e devolve `role: tool`; a resposta final do assistente é a única gravada no SQLite. Resposta direta (sem tool) também chega token a token no SSE.
+Com `WEB_SEARCH_ENABLED=true` e `TAVILY_API_KEY` preenchida, o backend oferece a ferramenta `web_search` ao upstream **desde que** ele suporte function calling no formato OpenAI. O loop agente corre no FastAPI (`agent.py`): cada rodada fala com o modelo em stream; se ele pede a tool, o backend chama a Tavily (`web_search.py`) e devolve `role: tool`; a resposta final do assistente é a única gravada no SQLite. Resposta direta (sem tool) também chega token a token no SSE.
 
 `chat.py` usa `stream_with_tools` no stream e `complete_with_tools` no JSON. O JSON reutiliza o mesmo loop por baixo, mas não expõe eventos SSE de `tool_start` / `tool_end` — só o texto final.
 
@@ -80,7 +84,7 @@ RAG, cadastro e login, embeddings, resumo automático do histórico e testes de 
 
 No backend, `pytest` na pasta `backend/`. O `pytest.ini` exclui o marcador `integration`. No frontend, `npm test`.
 
-O teste de integração e o `docker compose up` só quando a tarefa pede o modelo de verdade. Mudança de tela segue o checklist manual do README.
+O teste de integração e o `docker compose up` só quando a tarefa pede o upstream de verdade. Mudança de tela segue o checklist manual do README.
 
 ## Idioma
 

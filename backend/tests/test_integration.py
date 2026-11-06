@@ -9,8 +9,11 @@ from tests.conftest import parse_sse
 
 
 @pytest.mark.integration
-async def test_real_llama_round_trip(tmp_path):
-    base_url = os.environ.get("LLAMA_BASE_URL", "http://127.0.0.1:8080/v1")
+async def test_real_upstream_round_trip(tmp_path):
+    base_url = os.environ.get("LLAMA_BASE_URL", "http://127.0.0.1:9080/v1")
+    api_key = os.environ.get("LLAMA_API_KEY", "").strip()
+    if not api_key:
+        pytest.skip("defina LLAMA_API_KEY para o teste de integração")
     health_url = base_url.rstrip("/")
     if health_url.endswith("/v1"):
         health_url = health_url[:-3]
@@ -19,14 +22,14 @@ async def test_real_llama_round_trip(tmp_path):
         response = httpx.get(health_url, timeout=3)
         response.raise_for_status()
     except httpx.HTTPError:
-        pytest.skip("llama-server não está acessível")
+        pytest.skip("serviço de inferência (upstream) não está acessível")
 
     database = (tmp_path / "integration.db").as_posix()
     settings = Settings(
         _env_file=None,
         database_url=f"sqlite+aiosqlite:///{database}",
         llama_base_url=base_url,
-        llama_api_key=os.environ.get("LLAMA_API_KEY", "local"),
+        llama_api_key=api_key,
         llama_enable_thinking=False,
         llama_ctx_size=int(os.environ.get("LLAMA_CTX_SIZE", "8192")),
         max_tokens_default=32,
